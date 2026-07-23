@@ -126,9 +126,8 @@ function Login({ setToken, setRole, setName, setStudentRegNum, API_BASE_URL }) {
           color: 'var(--text-muted)',
           textAlign: 'center'
         }}>
-          <p style={{ fontWeight: '600', marginBottom: '6px' }}>Offline Dev Sandbox Accounts:</p>
-          <p>Admin: <span style={{ color: 'var(--color-accent)' }}>admin@college.edu</span> / <span style={{ color: 'var(--color-accent)' }}>admin123</span></p>
-          <p>Student: <span style={{ color: 'var(--color-accent)' }}>23BCE040</span> / <span style={{ color: 'var(--color-accent)' }}>password123</span></p>
+          <p style={{ fontWeight: '600', marginBottom: '4px' }}>System Administrator Portal</p>
+          <p>Initial Admin Login: <span style={{ color: 'var(--color-accent)' }}>admin@college.edu</span> / <span style={{ color: 'var(--color-accent)' }}>admin123</span></p>
         </div>
       </div>
     </div>

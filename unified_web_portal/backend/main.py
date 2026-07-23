@@ -6,7 +6,8 @@ from datetime import datetime, date, time
 from typing import List, Optional
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, status, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 import pandas as pd
@@ -742,7 +743,10 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
 <body>
   <div class="header">
     <div class="brand">⚡ PROXIMITY ATTENDANCE WEB PORTAL</div>
-    <div class="status-badge">● Hardware USB Auto-Connected</div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <div class="status-badge">● Hardware USB Auto-Connected</div>
+      <a href="/" style="background:#1e293b; color:#38bdf8; padding:6px 14px; border-radius:20px; text-decoration:none; font-size:12px; font-weight:600; border:1px solid #334155;">🔐 Admin Dashboard</a>
+    </div>
   </div>
 
   <div class="container">
@@ -828,7 +832,20 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
 </body>
 </html>"""
 
-@app.get("/", response_class=HTMLResponse)
+frontend_dist_dir = os.path.join(workspace_dir, "unified_web_portal", "frontend", "dist")
+frontend_assets_dir = os.path.join(frontend_dist_dir, "assets")
+
+if os.path.exists(frontend_assets_dir):
+    app.mount("/assets", StaticFiles(directory=frontend_assets_dir), name="assets")
+
 @app.get("/instructor", response_class=HTMLResponse)
 def get_instructor_web_portal():
     return INSTRUCTOR_WEB_HTML
+
+@app.get("/")
+@app.get("/admin")
+def serve_admin_dashboard():
+    index_file = os.path.join(frontend_dist_dir, "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+    return HTMLResponse(INSTRUCTOR_WEB_HTML)

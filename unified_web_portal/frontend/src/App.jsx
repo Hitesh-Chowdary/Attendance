@@ -3,7 +3,7 @@ import Login from './components/Login';
 import AdminDashboard from './components/AdminDashboard';
 import StudentDashboard from './components/StudentDashboard';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = typeof window !== 'undefined' ? window.location.origin : '';
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('access_token') || '');
