@@ -14,6 +14,7 @@ env/
 build/
 develop-eggs/
 dist/
+!unified_web_portal/frontend/dist/
 !unified_web_portal/frontend/dist/**
 downloads/
 eggs/
