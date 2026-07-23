@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classroom Proximity Check-in</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --panel: #0f172a;
+      --accent: #3b82f6;
+      --text: #f8fafc;
+      --text-sec: #94a3b8;
+      --success: #10b981;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 16px;
+    }
+    .container {
+      width: 100%;
+      max-width: 400px;
+      background-color: var(--panel);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      margin-top: 20px;
+    }
+    h2 { text-align: center; margin-bottom: 8px; font-size: 20px; }
+    p.desc { text-align: center; color: var(--text-sec); font-size: 12px; margin-bottom: 20px; }
+    label { display: block; font-size: 11px; color: var(--text-sec); margin-bottom: 6px; font-weight: 600; }
+    input {
+      width: 100%;
+      padding: 12px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px;
+      color: #fff;
+      font-size: 14px;
+      margin-bottom: 18px;
+      outline: none;
+    }
+    input:focus { border-color: var(--accent); }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: var(--accent);
+      border: none;
+      border-radius: 6px;
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 15px;
+      margin-top: 5px;
+    }
+    .alert {
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      margin-bottom: 18px;
+      text-align: center;
+      display: none;
+      line-height: 1.4;
+    }
+    .alert.success { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .alert.danger { background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+  </style>
+</head>
+<body>
+
+  <div style="display: flex; align-items: center; gap: 8px; margin: 20px 0 10px;">
+    <div style="width: 24px; height: 24px; border-radius: 6px; background: var(--accent);"></div>
+    <span style="font-weight: bold; font-size: 16px; letter-spacing: -0.025em;">PROXIMITY ATTENDANCE</span>
+  </div>
+
+  <div class="container">
+    <h2>Student Verification</h2>
+    <p class="desc">Verify credentials to confirm classroom presence.</p>
+    
+    <div id="alert" class="alert"></div>
+
+    <div id="attendance-form">
+      <label>REGISTRATION NUMBER</label>
+      <input id="reg" type="text" placeholder="e.g. 23BCE040" required />
+
+      <label>PASSWORD</label>
+      <input id="pass" type="password" placeholder="••••••••" required />
+
+      <label>DYNAMIC PASSCODE</label>
+      <input id="token" type="text" placeholder="Type 6-digit code shown on screen" maxlength="6" required />
+
+      <button type="button" onclick="handleAttendanceSubmit()">Verify Attendance</button>
+    </div>
+  </div>
+
+  <script>
+    const alertDiv = document.getElementById("alert");
+
+    function showAlert(msg, isError = false) {
+      alertDiv.innerText = msg;
+      alertDiv.className = isError ? "alert danger" : "alert success";
+      alertDiv.style.display = "block";
+    }
+
+    async function handleAttendanceSubmit() {
+      alertDiv.style.display = "none";
+
+      const reg_number = document.getElementById("reg").value.trim();
+      const password = document.getElementById("pass").value.trim();
+      const passcode = document.getElementById("token").value.trim();
+
+      if (!reg_number || !password || !passcode) {
+        showAlert("Please fill in all 3 fields: Registration Number, Password, and Passcode.", true);
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/submit-attendance", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reg_number, password, passcode })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          showAlert("🎉 Attendance Authenticated Successfully! Connection released. You may now disconnect from Wi-Fi.");
+          document.getElementById("reg").value = "";
+          document.getElementById("pass").value = "";
+          document.getElementById("token").value = "";
+        } else {
+          showAlert("[" + res.status + " Error] " + (data.message || "Verification failed."), true);
+        }
+      } catch (err) {
+        showAlert("Failed to connect to classroom node: " + err, true);
+      }
+    }
+  </script>
+</body>
+</html>
