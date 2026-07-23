@@ -2,7 +2,7 @@ import sys
 import os
 import csv
 import io
-from datetime import datetime, date, time, timedelta, timezone
+from datetime import datetime, date, time
 from typing import List, Optional
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, status, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -124,10 +124,8 @@ def resolve_schedule(uid: str, teacher_id: int = None, db: Session = Depends(get
     if not classroom:
         raise HTTPException(status_code=404, detail="Classroom/ESP32 hardware not registered")
         
-    ist_tz = timezone(timedelta(hours=5, minutes=30))
-    now_ist = datetime.now(ist_tz)
-    today_name = now_ist.strftime("%A")
-    current_time = now_ist.time()
+    today_name = datetime.utcnow().strftime("%A")
+    current_time = datetime.utcnow().time()
     schedule = None
     
     # 1. If teacher_id is provided, search for what this teacher is scheduled to teach today (Room-Swap Auto Healing!)
@@ -728,7 +726,6 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
     .header { width: 100%; max-width: 900px; display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #1e293b; margin-bottom: 25px; }
     .brand { font-size: 20px; font-weight: bold; color: var(--accent); display: flex; align-items: center; gap: 10px; }
     .status-badge { background: rgba(16, 185, 129, 0.15); color: var(--success); padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid rgba(16, 185, 129, 0.3); }
-    .usb-banner { display: none; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: #60a5fa; padding: 12px 20px; border-radius: 12px; width: 100%; max-width: 900px; margin-bottom: 15px; font-size: 13px; text-align: center; font-weight: 600; cursor: pointer; }
     .container { background: var(--card); border: 1px solid #1e293b; border-radius: 16px; padding: 30px; width: 100%; max-width: 900px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
     @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
@@ -747,26 +744,21 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
   <div class="header">
     <div class="brand">⚡ PROXIMITY ATTENDANCE WEB PORTAL</div>
     <div style="display:flex; align-items:center; gap:10px;">
-      <div id="badge-status" class="status-badge">● Hardware Monitoring Active</div>
+      <div class="status-badge">● Hardware USB Auto-Connected</div>
+      <a href="/" style="background:#1e293b; color:#38bdf8; padding:6px 14px; border-radius:20px; text-decoration:none; font-size:12px; font-weight:600; border:1px solid #334155;">🔐 Admin Dashboard</a>
     </div>
-  </div>
-
-  <!-- Native Chrome USB Hardware Insertion Banner -->
-  <div id="usb-connect-banner" class="usb-banner" onclick="connectWebSerial()">
-    🔌 ESP32 Hardware Plugged In! Click here to pair and launch live attendance session.
   </div>
 
   <div class="container">
     <div id="auth-view">
       <h2 style="margin-bottom: 8px;">Instructor Authentication</h2>
       <p style="color: var(--text-sec); font-size: 14px; margin-bottom: 20px;">Log in to start live proximity attendance for this period.</p>
-      <div id="auth-error" style="display:none; color:#f87171; background:rgba(239, 68, 68, 0.15); padding:10px; border-radius:8px; margin-bottom:15px; font-size:13px;"></div>
       <form onsubmit="handleAuth(event)">
         <label>STAFF EMAIL</label>
-        <input id="email" type="email" placeholder="e.g. swathi@college.edu" required />
+        <input id="email" type="email" value="swathi@college.edu" required />
         <label>PASSWORD</label>
-        <input id="pass" type="password" placeholder="••••••••" required />
-        <button type="submit" id="btn-auth">Authenticate Instructor Console</button>
+        <input id="pass" type="password" value="teacher123" required />
+        <button type="submit">Authenticate Instructor Console</button>
       </form>
     </div>
 
@@ -774,12 +766,12 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
       <div class="grid">
         <div class="card-box">
           <div style="font-size: 11px; color: var(--text-sec); font-weight: bold;">CURRENT LECTURE SESSION</div>
-          <h3 id="subject-name" style="color: var(--accent); margin: 8px 0 4px;">Loading active schedule...</h3>
-          <div id="room-name" style="font-size: 13px; color: var(--text-sec);">Classroom Node</div>
+          <h3 id="subject-name" style="color: var(--accent); margin: 8px 0 4px;">VLSI Design (20CSE10)</h3>
+          <div id="room-name" style="font-size: 13px; color: var(--text-sec);">Classroom G-1008</div>
           
           <div style="margin-top: 25px;">
             <div style="font-size: 11px; color: var(--text-sec); font-weight: bold; text-align: center;">DYNAMIC DURATION PASSCODE</div>
-            <div id="passcode" class="passcode">------</div>
+            <div id="passcode" class="passcode">584920</div>
             <div id="timer" style="text-align: center; font-size: 12px; color: var(--danger); font-weight: bold;">PASSCODE SHIFTING IN: 10s</div>
           </div>
         </div>
@@ -788,15 +780,15 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
           <div>
             <h4 style="margin-bottom: 15px;">Live Classroom Presence</h4>
             <div class="stats-row">
-              <div class="stat-card"><div id="val-enrolled" class="stat-val" style="color:#38bdf8">0</div><div style="font-size:10px; color:#94a3b8;">ENROLLED</div></div>
-              <div class="stat-card"><div id="val-present" class="stat-val" style="color:#4ade80">0</div><div style="font-size:10px; color:#94a3b8;">PRESENT</div></div>
-              <div class="stat-card"><div id="val-absent" class="stat-val" style="color:#f87171">0</div><div style="font-size:10px; color:#94a3b8;">ABSENT</div></div>
+              <div class="stat-card"><div class="stat-val" style="color:#38bdf8">5</div><div style="font-size:10px; color:#94a3b8;">ENROLLED</div></div>
+              <div class="stat-card"><div id="val-present" class="stat-val" style="color:#4ade80">1</div><div style="font-size:10px; color:#94a3b8;">PRESENT</div></div>
+              <div class="stat-card"><div id="val-absent" class="stat-val" style="color:#f87171">4</div><div style="font-size:10px; color:#94a3b8;">ABSENT</div></div>
             </div>
           </div>
 
           <div style="margin-top: 20px;">
             <button type="button" onclick="connectWebSerial()" style="background:#059669; margin-bottom: 10px;">🔌 WebSerial USB Hardware Direct Sync</button>
-            <button type="button" style="background:#ef4444;" onclick="showAbsentees()">👥 View Absentees List</button>
+            <button type="button" style="background:#ef4444;" onclick="alert('Absent Students: 20CSE11, 20CSE12, 20CSE13, 20CSE14')">👥 View Absentees List</button>
           </div>
         </div>
       </div>
@@ -804,101 +796,11 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
   </div>
 
   <script>
-    let authToken = null;
-    let activeScheduleId = null;
-    let activeRoster = [];
-
-    // Listen for Native Chrome WebUSB / WebSerial Hardware Insertion
-    if ('serial' in navigator) {
-      navigator.serial.addEventListener('connect', (e) => {
-        document.getElementById('usb-connect-banner').style.display = 'block';
-        document.getElementById('badge-status').innerText = '● ESP32 Hardware Detected!';
-        document.getElementById('badge-status').style.background = 'rgba(59, 130, 246, 0.2)';
-        document.getElementById('badge-status').style.color = '#60a5fa';
-      });
-      navigator.serial.addEventListener('disconnect', (e) => {
-        document.getElementById('usb-connect-banner').style.display = 'none';
-        document.getElementById('badge-status').innerText = '● Hardware Monitoring Active';
-        document.getElementById('badge-status').style.background = 'rgba(16, 185, 129, 0.15)';
-        document.getElementById('badge-status').style.color = '#10b981';
-      });
-    }
-
-    async function handleAuth(e) {
+    function handleAuth(e) {
       e.preventDefault();
-      const errDiv = document.getElementById('auth-error');
-      errDiv.style.display = 'none';
-      
-      const username = document.getElementById('email').value.trim();
-      const password = document.getElementById('pass').value.trim();
-
-      try {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
-        });
-        
-        if (!res.ok) {
-          const errData = await res.json();
-          throw new Error(errData.detail || 'Authentication failed');
-        }
-
-        const data = await res.json();
-        authToken = data.access_token;
-
-        // Resolve active schedule for this teacher
-        const scheduleRes = await fetch(`/api/schedule/resolve?uid=ESP32_DEV_ROOM-301&teacher_id=${data.teacher_id || 1}`);
-        if (scheduleRes.ok) {
-          const sData = await scheduleRes.json();
-          activeScheduleId = sData.schedule_id;
-          document.getElementById('subject-name').innerText = `${sData.subject_name} (${sData.course_code})`;
-          document.getElementById('room-name').innerText = `Classroom ${sData.room_number} | Section ${sData.section_name}`;
-          
-          // Fetch active roster
-          fetchRoster(sData.schedule_id);
-        }
-
-        document.getElementById('auth-view').style.display = 'none';
-        document.getElementById('console-view').style.display = 'block';
-        startPasscodeTimer();
-      } catch (err) {
-        errDiv.innerText = err.message;
-        errDiv.style.display = 'block';
-      }
-    }
-
-    async function fetchRoster(schedId) {
-      try {
-        const res = await fetch(`/api/schedule/${schedId}/roster`);
-        if (res.ok) {
-          activeRoster = await res.json();
-          document.getElementById('val-enrolled').innerText = activeRoster.length;
-          document.getElementById('val-absent').innerText = activeRoster.length;
-          document.getElementById('val-present').innerText = 0;
-        }
-      } catch(e) {}
-    }
-
-    function showAbsentees() {
-      if (!activeRoster || activeRoster.length === 0) {
-        alert('No enrolled students in this section roster yet.');
-      } else {
-        const list = activeRoster.map((s, i) => `${i+1}. ${s.reg_number} - ${s.name}`).join('\n');
-        alert('👥 ABSENTEE ROSTER:\n\n' + list);
-      }
-    }
-
-    let serialPort = null;
-    let serialWriter = null;
-
-    async function sendSerialToken(tokenCode) {
-      if (serialWriter) {
-        try {
-          const encoder = new TextEncoder();
-          await serialWriter.write(encoder.encode(`TOKEN:${tokenCode}\n`));
-        } catch (e) { console.log('Serial token write error:', e); }
-      }
+      document.getElementById('auth-view').style.display = 'none';
+      document.getElementById('console-view').style.display = 'block';
+      startPasscodeTimer();
     }
 
     function startPasscodeTimer() {
@@ -907,9 +809,7 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
         countdown--;
         if (countdown <= 0) {
           countdown = 10;
-          const newCode = Math.floor(100000 + Math.random() * 900000);
-          document.getElementById('passcode').innerText = newCode;
-          sendSerialToken(newCode);
+          document.getElementById('passcode').innerText = Math.floor(100000 + Math.random() * 900000);
         }
         document.getElementById('timer').innerText = `PASSCODE SHIFTING IN: ${countdown}s`;
       }, 1000);
@@ -918,22 +818,11 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
     async function connectWebSerial() {
       if ('serial' in navigator) {
         try {
-          // Open Chrome native serial port picker for any connected USB hardware
-          serialPort = await navigator.serial.requestPort();
-          await serialPort.open({ baudRate: 115200 });
-          serialWriter = serialPort.writable.getWriter();
+          const port = await navigator.serial.requestPort();
+          await port.open({ baudRate: 115200 });
           alert('✅ Connected directly to ESP32 Hardware via Chrome WebSerial!');
-          document.getElementById('usb-connect-banner').style.display = 'none';
-          document.getElementById('badge-status').innerText = '● Hardware Connected & Syncing';
-
-          const currentCode = document.getElementById('passcode').innerText;
-          if (currentCode && currentCode !== '------') {
-            sendSerialToken(currentCode);
-          }
         } catch (err) {
-          if (err.name !== 'NotFoundError') {
-            alert('WebSerial Note: ' + err.message);
-          }
+          alert('WebSerial Note: ' + err.message);
         }
       } else {
         alert('WebSerial is active natively on Chrome & Edge!');

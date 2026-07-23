@@ -348,13 +348,13 @@ unsigned long tokenTimestamp = 0;
 const unsigned long TOKEN_EXPIRY_MS = 11000; // Tokens invalidate after 11 seconds
 
 // Array to bind client IPs to their registration numbers during the session
-String submittedIPs[200];
-String submittedRegs[200];
+String submittedIPs[150];
+String submittedRegs[150];
 int submittedCount = 0;
 
 // RAM Cached Roster Structure to eliminate LittleFS Flash file locking collisions
-String rosterRegs[200];
-String rosterPasses[200];
+String rosterRegs[150];
+String rosterPasses[150];
 int rosterCount = 0;
 
 void loadRosterToRAM() {
@@ -363,7 +363,7 @@ void loadRosterToRAM() {
   File file = LittleFS.open("/students.txt", "r");
   if (!file) return;
 
-  while (file.available() && rosterCount < 200) {
+  while (file.available() && rosterCount < 150) {
     String line = file.readStringUntil('\n');
     line.trim();
     if (line.length() == 0) continue;

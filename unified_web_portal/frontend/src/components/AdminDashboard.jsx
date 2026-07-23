@@ -35,8 +35,7 @@ function AdminDashboard({ token, API_BASE_URL }) {
     const checkUnauthorized = (res) => {
       if (res.status === 401 && !isExpired) {
         isExpired = true;
-        localStorage.clear();
-        window.location.reload();
+        showStatus("Session expired. Please click 'Sign Out' and log in again to refresh your token.", "error");
       }
     };
     
