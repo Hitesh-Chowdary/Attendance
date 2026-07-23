@@ -15,6 +15,8 @@ from database_layer.models import (
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def get_password_hash(password):
+    if isinstance(password, str):
+        password = password[:72]
     return pwd_context.hash(password)
 
 def seed_database():

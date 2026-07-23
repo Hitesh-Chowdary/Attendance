@@ -828,6 +828,7 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
 </body>
 </html>"""
 
+@app.get("/", response_class=HTMLResponse)
 @app.get("/instructor", response_class=HTMLResponse)
 def get_instructor_web_portal():
     return INSTRUCTOR_WEB_HTML
