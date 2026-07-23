@@ -12,7 +12,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def get_password_hash(password):
     if isinstance(password, str):
-        password = password[:72]
+        password = password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
     return pwd_context.hash(password)
 
 def seed_database():
