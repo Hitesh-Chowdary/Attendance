@@ -726,6 +726,7 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
     .header { width: 100%; max-width: 900px; display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #1e293b; margin-bottom: 25px; }
     .brand { font-size: 20px; font-weight: bold; color: var(--accent); display: flex; align-items: center; gap: 10px; }
     .status-badge { background: rgba(16, 185, 129, 0.15); color: var(--success); padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .usb-banner { display: none; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: #60a5fa; padding: 12px 20px; border-radius: 12px; width: 100%; max-width: 900px; margin-bottom: 15px; font-size: 13px; text-align: center; font-weight: 600; cursor: pointer; }
     .container { background: var(--card); border: 1px solid #1e293b; border-radius: 16px; padding: 30px; width: 100%; max-width: 900px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
     @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
@@ -744,9 +745,14 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
   <div class="header">
     <div class="brand">⚡ PROXIMITY ATTENDANCE WEB PORTAL</div>
     <div style="display:flex; align-items:center; gap:10px;">
-      <div class="status-badge">● Hardware USB Auto-Connected</div>
+      <div id="badge-status" class="status-badge">● Hardware Monitoring Active</div>
       <a href="/" style="background:#1e293b; color:#38bdf8; padding:6px 14px; border-radius:20px; text-decoration:none; font-size:12px; font-weight:600; border:1px solid #334155;">🔐 Admin Dashboard</a>
     </div>
+  </div>
+
+  <!-- Native Chrome USB Hardware Insertion Banner -->
+  <div id="usb-connect-banner" class="usb-banner" onclick="connectWebSerial()">
+    🔌 ESP32 Hardware Plugged In! Click here to pair and launch live attendance session.
   </div>
 
   <div class="container">
@@ -796,6 +802,22 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
   </div>
 
   <script>
+    // Listen for Native Chrome WebUSB / WebSerial Hardware Insertion
+    if ('serial' in navigator) {
+      navigator.serial.addEventListener('connect', (e) => {
+        document.getElementById('usb-connect-banner').style.display = 'block';
+        document.getElementById('badge-status').innerText = '● ESP32 Hardware Detected!';
+        document.getElementById('badge-status').style.background = 'rgba(59, 130, 246, 0.2)';
+        document.getElementById('badge-status').style.color = '#60a5fa';
+      });
+      navigator.serial.addEventListener('disconnect', (e) => {
+        document.getElementById('usb-connect-banner').style.display = 'none';
+        document.getElementById('badge-status').innerText = '● Hardware Monitoring Active';
+        document.getElementById('badge-status').style.background = 'rgba(16, 185, 129, 0.15)';
+        document.getElementById('badge-status').style.color = '#10b981';
+      });
+    }
+
     function handleAuth(e) {
       e.preventDefault();
       document.getElementById('auth-view').style.display = 'none';
@@ -821,6 +843,8 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
           const port = await navigator.serial.requestPort();
           await port.open({ baudRate: 115200 });
           alert('✅ Connected directly to ESP32 Hardware via Chrome WebSerial!');
+          document.getElementById('usb-connect-banner').style.display = 'none';
+          document.getElementById('badge-status').innerText = '● Hardware Connected & Active';
         } catch (err) {
           alert('WebSerial Note: ' + err.message);
         }
