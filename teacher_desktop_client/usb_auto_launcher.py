@@ -5,8 +5,8 @@ import webbrowser
 import serial.tools.list_ports
 
 # Target web portal URL (configurable for local dev, Render, or College Subdomain)
-# Default local URL or Render/Subdomain URL:
-PORTAL_URL = os.environ.get("ATTENDANCE_PORTAL_URL", "http://localhost:8000/instructor")
+# Default live Render cloud URL:
+PORTAL_URL = os.environ.get("ATTENDANCE_PORTAL_URL", "https://smartattendance-jlal.onrender.com/instructor")
 
 # Known ESP32 USB Vendor IDs (303A: Native ESP32 USB CDC, 10C4: CP2102, 1A86: CH340)
 ESP32_VIDS = [0x303A, 0x10C4, 0x1A86]

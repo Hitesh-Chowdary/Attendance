@@ -25,7 +25,7 @@ class TeacherAttendanceApp(ctk.CTk):
         self.geometry("1000x700")
         
         # Connection Configs
-        self.API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+        self.API_BASE_URL = os.getenv("API_BASE_URL", "https://smartattendance-jlal.onrender.com")
         self.serial_port = None
         self.esp32_uid = None
         self.auth_token = None
