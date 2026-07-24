@@ -819,7 +819,22 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
     let presentSet = new Set();
     let serialPort = null;
 
-    window.addEventListener('DOMContentLoaded', autoConnectWebSerial);
+    window.addEventListener('DOMContentLoaded', () => {
+      autoConnectWebSerial();
+      if ('serial' in navigator) {
+        navigator.serial.addEventListener('connect', (e) => {
+          console.log('USB Hardware Plugged In:', e.target);
+          autoConnectWebSerial();
+        });
+        navigator.serial.addEventListener('disconnect', (e) => {
+          console.log('USB Hardware Unplugged:', e.target);
+          const badge = document.getElementById('hw-status');
+          badge.innerText = '● Hardware Disconnected (USB Unplugged)';
+          badge.className = 'status-badge offline';
+          serialPort = null;
+        });
+      }
+    });
 
     async function autoConnectWebSerial() {
       const badge = document.getElementById('hw-status');
@@ -828,7 +843,9 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
           const ports = await navigator.serial.getPorts();
           if (ports.length > 0) {
             serialPort = ports[0];
-            await serialPort.open({ baudRate: 115200 });
+            if (!serialPort.readable) {
+              await serialPort.open({ baudRate: 115200 });
+            }
             badge.innerText = '● Hardware Connected (COM Port Active)';
             badge.className = 'status-badge';
             readSerialLoop();
