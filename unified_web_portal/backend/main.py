@@ -841,8 +841,7 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
 
           <div style="margin-top: 20px;">
             <button id="webserial-btn" type="button" onclick="connectWebSerial()" style="background:#059669; margin-bottom: 10px;">🔌 Pair ESP32 USB Port via Chrome</button>
-            <button type="button" style="background:#ef4444; margin-bottom: 10px;" onclick="openAbsenteesModal()">👥 View Absentees List</button>
-            <button type="button" style="background:#dc2626;" onclick="handleInstructorLogout()">🚪 Logout Instructor Session</button>
+            <button type="button" style="background:#ef4444;" onclick="openAbsenteesModal()">👥 View Absentees List</button>
           </div>
         </div>
       </div>
@@ -865,8 +864,6 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
     let presentSet = new Set();
     let serialPort = null;
 
-    let timerInterval = null;
-
     window.addEventListener('DOMContentLoaded', () => {
       autoConnectWebSerial();
       if ('serial' in navigator) {
@@ -882,23 +879,7 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
           serialPort = null;
         });
       }
-
-      // Restore active instructor session across page reloads
-      const savedTeacherId = sessionStorage.getItem('instructor_teacher_id');
-      if (savedTeacherId) {
-        document.getElementById('auth-view').style.display = 'none';
-        document.getElementById('console-view').style.display = 'block';
-        loadSchedule(savedTeacherId);
-        startPasscodeTimer();
-      }
     });
-
-    function handleInstructorLogout() {
-      sessionStorage.clear();
-      if (timerInterval) clearInterval(timerInterval);
-      document.getElementById('console-view').style.display = 'none';
-      document.getElementById('auth-view').style.display = 'block';
-    }
 
     async function autoConnectWebSerial() {
       const badge = document.getElementById('hw-status');
@@ -1027,14 +1008,11 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
           throw new Error('Access denied. Instructor accounts only.');
         }
 
-        const teacherId = data.teacher_id || data.sub;
-        sessionStorage.setItem('instructor_teacher_id', teacherId);
-
         document.getElementById('auth-view').style.display = 'none';
         document.getElementById('console-view').style.display = 'block';
 
         // Fetch live timetable schedule for teacher
-        await loadSchedule(teacherId);
+        await loadSchedule(data.teacher_id || data.sub);
         startPasscodeTimer();
 
       } catch (err) {
@@ -1084,8 +1062,7 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
     function startPasscodeTimer() {
       generatePasscode();
       let countdown = 10;
-      if (timerInterval) clearInterval(timerInterval);
-      timerInterval = setInterval(() => {
+      setInterval(() => {
         countdown--;
         if (countdown <= 0) {
           countdown = 10;
