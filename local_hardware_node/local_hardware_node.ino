@@ -328,9 +328,38 @@ const char STAFF_HTML_CONTENT[] PROGMEM = R"rawliteral(
           } else {
             listDiv.innerHTML = data.absentees.map((s, i) => `<div style="padding:6px 0; border-bottom:1px solid #1e293b; color:#f87171;">${i+1}. ${s}</div>`).join("");
           }
+
+          // Auto-save attendance snapshot to phone's background sync queue
+          if (data.present_students && data.present_students.length > 0) {
+            autoSavePeriodLogsLocally(data.present_students);
+          }
         }
       } catch (err) {}
     }
+
+    function autoSavePeriodLogsLocally(students) {
+      let queue = JSON.parse(localStorage.getItem("pending_cloud_sync_queue") || "[]");
+      queue = [{ timestamp: new Date().toISOString(), students: students }];
+      localStorage.setItem("pending_cloud_sync_queue", JSON.stringify(queue));
+    }
+
+    async function tryAutoSyncToCloud() {
+      let queue = JSON.parse(localStorage.getItem("pending_cloud_sync_queue") || "[]");
+      if (queue.length === 0) return;
+      try {
+        const res = await fetch("https://smartattendance-jlal.onrender.com/api/attendance/bulk-upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items: queue })
+        });
+        if (res.ok) {
+          localStorage.removeItem("pending_cloud_sync_queue");
+        }
+      } catch (err) {}
+    }
+
+    window.addEventListener("online", tryAutoSyncToCloud);
+    setInterval(tryAutoSyncToCloud, 5000);
 
     function openAbsenteesModal() { document.getElementById("absentees-modal").style.display = "flex"; }
     function closeAbsenteesModal() { document.getElementById("absentees-modal").style.display = "none"; }
@@ -522,6 +551,13 @@ void setup() {
     }
     absenteesJSON += "]";
 
+    String presentJSON = "[";
+    for (int i = 0; i < submittedCount; i++) {
+      if (i > 0) presentJSON += ",";
+      presentJSON += "\"" + submittedRegs[i] + "\"";
+    }
+    presentJSON += "]";
+
     if (activePasscode == "000000" || activePasscode == "") {
       randomSeed(micros());
       activePasscode = String(random(100000, 999999));
@@ -529,7 +565,7 @@ void setup() {
 
     int absentCount = (rosterCount > submittedCount) ? (rosterCount - submittedCount) : 0;
 
-    String json = "{\"passcode\":\"" + activePasscode + "\",\"total\":" + String(rosterCount) + ",\"present\":" + String(submittedCount) + ",\"absent\":" + String(absentCount) + ",\"absentees\":" + absenteesJSON + "}";
+    String json = "{\"passcode\":\"" + activePasscode + "\",\"total\":" + String(rosterCount) + ",\"present\":" + String(submittedCount) + ",\"absent\":" + String(absentCount) + ",\"absentees\":" + absenteesJSON + ",\"present_students\":" + presentJSON + "}";
     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
     response->addHeader("Connection", "close");
     request->send(response);

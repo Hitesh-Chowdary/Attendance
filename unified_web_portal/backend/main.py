@@ -699,6 +699,45 @@ def get_student_scorecard(db: Session = Depends(get_db), current_user: dict = De
         "subject_metrics": subject_metrics
     }
 
+@app.post("/api/attendance/bulk-upload")
+def bulk_upload_offline_attendance(payload: dict, db: Session = Depends(get_db)):
+    """Receives offline attendance logs automatically queued by staff mobile phone when 4G internet reconnects"""
+    items = payload.get("items", [])
+    synced_count = 0
+    today = date.today()
+    current_time = datetime.now().time()
+    
+    for item in items:
+        students = item.get("students", [])
+        for reg in students:
+            student = db.query(Student).filter(Student.reg_number == reg).first()
+            if student:
+                schedule = db.query(TimetableSchedule).filter(
+                    TimetableSchedule.section_id == student.section_id
+                ).first()
+                
+                if schedule:
+                    existing = db.query(AttendanceLog).filter(
+                        AttendanceLog.student_id == student.student_id,
+                        AttendanceLog.schedule_id == schedule.schedule_id,
+                        AttendanceLog.date == today
+                    ).first()
+                    
+                    if not existing:
+                        log = AttendanceLog(
+                            student_id=student.student_id,
+                            schedule_id=schedule.schedule_id,
+                            date=today,
+                            time=current_time,
+                            status=AttendanceStatus.PRESENT,
+                            verification_method="PROXIMITY_OTP"
+                        )
+                        db.add(log)
+                        synced_count += 1
+                        
+    db.commit()
+    return {"status": "success", "synced_records": synced_count}
+
 # ==========================================
 # INSTRUCTOR WEB CONSOLE (AUTO-LAUNCH PORTAL)
 # ==========================================
@@ -759,6 +798,12 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
       <div id="login-alert" class="alert-msg"></div>
 
       <form onsubmit="handleAuth(event)">
+        <div style="margin-bottom: 20px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 10px; padding: 15px; text-align: center;">
+          <div style="font-size: 12px; font-weight: bold; color: var(--text-sec); margin-bottom: 8px;">STEP 1: CONNECT CLASSROOM HARDWARE</div>
+          <button type="button" onclick="connectWebSerial()" style="background:#059669; padding: 10px; font-size: 13px;">🔌 Pair ESP32 USB Port via Chrome</button>
+        </div>
+
+        <div style="font-size: 12px; font-weight: bold; color: var(--text-sec); margin-bottom: 8px;">STEP 2: INSTRUCTOR LOGIN</div>
         <label>INSTRUCTOR EMAIL</label>
         <input id="email" type="email" placeholder="e.g. instructor@college.edu" required />
         
@@ -897,6 +942,14 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
       const loginBtn = document.getElementById('login-btn');
 
       alertDiv.style.display = 'none';
+
+      // Enforce Case 1: Must pair ESP32 USB port BEFORE logging in
+      if (!serialPort || !serialPort.readable) {
+        alertDiv.innerHTML = '⚠️ <b>USB Hardware Connection Required</b>: Please plug in and pair the classroom ESP32 USB port first (click <b>🔌 Pair ESP32 USB Port</b> below) before authenticating.';
+        alertDiv.style.display = 'block';
+        return;
+      }
+
       loginBtn.innerText = 'Authenticating...';
       loginBtn.disabled = true;
 
