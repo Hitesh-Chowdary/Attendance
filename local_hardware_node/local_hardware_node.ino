@@ -377,6 +377,11 @@ unsigned long tokenTimestamp = 0;
 const unsigned long TOKEN_EXPIRY_MS = 11000; // Tokens invalidate after 11 seconds
 
 // Array to bind client IPs to their registration numbers during the session
+// Forward function prototype declarations for Arduino C++ compiler
+String getValue(String data, char separator, int index);
+void loadRosterToRAM();
+
+// Session RAM Data Structures
 String submittedIPs[150];
 String submittedRegs[150];
 int submittedCount = 0;
