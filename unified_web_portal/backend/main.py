@@ -726,53 +726,61 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
     .header { width: 100%; max-width: 900px; display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #1e293b; margin-bottom: 25px; }
     .brand { font-size: 20px; font-weight: bold; color: var(--accent); display: flex; align-items: center; gap: 10px; }
     .status-badge { background: rgba(16, 185, 129, 0.15); color: var(--success); padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .status-badge.offline { background: rgba(239, 68, 68, 0.15); color: var(--danger); border-color: rgba(239, 68, 68, 0.3); }
     .container { background: var(--card); border: 1px solid #1e293b; border-radius: 16px; padding: 30px; width: 100%; max-width: 900px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
     @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
     .card-box { background: #131a2a; border: 1px solid #1e293b; border-radius: 12px; padding: 20px; }
     label { font-size: 11px; color: var(--text-sec); font-weight: bold; margin-bottom: 6px; display: block; }
-    input { width: 100%; padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; margin-bottom: 15px; }
+    input { width: 100%; padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; margin-bottom: 15px; outline: none; }
     button { width: 100%; padding: 14px; background: var(--accent); border: none; border-radius: 8px; color: #fff; font-weight: bold; cursor: pointer; font-size: 15px; transition: 0.2s; }
     button:hover { opacity: 0.9; transform: translateY(-1px); }
     .passcode { font-size: 52px; font-weight: bold; color: #38bdf8; letter-spacing: 6px; text-align: center; margin: 15px 0; }
     .stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 15px; }
     .stat-card { background: #1e293b; padding: 15px; border-radius: 8px; text-align: center; }
     .stat-val { font-size: 24px; font-weight: bold; }
+    .alert-msg { background: rgba(239,68,68,0.15); color: #f87171; padding: 12px; border-radius: 8px; font-size: 13px; margin-bottom: 15px; display: none; text-align: center; border: 1px solid rgba(239,68,68,0.3); }
+    .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); align-items:center; justify-content:center; padding:16px; z-index:1000; }
+    .modal-content { background: #0f172a; border-radius: 12px; width: 100%; max-width: 400px; padding: 24px; border: 1px solid #334155; }
   </style>
 </head>
 <body>
   <div class="header">
-    <div class="brand">⚡ PROXIMITY ATTENDANCE WEB PORTAL</div>
-    <div style="display:flex; align-items:center; gap:10px;">
-      <div class="status-badge">● Hardware USB Auto-Connected</div>
-      <a href="/" style="background:#1e293b; color:#38bdf8; padding:6px 14px; border-radius:20px; text-decoration:none; font-size:12px; font-weight:600; border:1px solid #334155;">🔐 Admin Dashboard</a>
-    </div>
+    <div class="brand">⚡ PROXIMITY ATTENDANCE INSTRUCTOR PORTAL</div>
+    <div id="hw-status" class="status-badge">● Checking USB Connection...</div>
   </div>
 
   <div class="container">
+    <!-- Auth View -->
     <div id="auth-view">
       <h2 style="margin-bottom: 8px;">Instructor Authentication</h2>
-      <p style="color: var(--text-sec); font-size: 14px; margin-bottom: 20px;">Log in to start live proximity attendance for this period.</p>
+      <p style="color: var(--text-sec); font-size: 14px; margin-bottom: 20px;">Log in with your instructor account to launch the active lecture session.</p>
+      
+      <div id="login-alert" class="alert-msg"></div>
+
       <form onsubmit="handleAuth(event)">
-        <label>STAFF EMAIL</label>
-        <input id="email" type="email" value="swathi@college.edu" required />
+        <label>INSTRUCTOR EMAIL</label>
+        <input id="email" type="email" placeholder="e.g. instructor@college.edu" required />
+        
         <label>PASSWORD</label>
-        <input id="pass" type="password" value="teacher123" required />
-        <button type="submit">Authenticate Instructor Console</button>
+        <input id="pass" type="password" placeholder="••••••••" required />
+        
+        <button id="login-btn" type="submit">Authenticate Instructor Console</button>
       </form>
     </div>
 
+    <!-- Active Console View -->
     <div id="console-view" style="display:none;">
       <div class="grid">
         <div class="card-box">
           <div style="font-size: 11px; color: var(--text-sec); font-weight: bold;">CURRENT LECTURE SESSION</div>
-          <h3 id="subject-name" style="color: var(--accent); margin: 8px 0 4px;">VLSI Design (20CSE10)</h3>
-          <div id="room-name" style="font-size: 13px; color: var(--text-sec);">Classroom G-1008</div>
+          <h3 id="subject-name" style="color: var(--accent); margin: 8px 0 4px;">Loading Schedule...</h3>
+          <div id="room-name" style="font-size: 13px; color: var(--text-sec);">Detecting Classroom Node...</div>
           
           <div style="margin-top: 25px;">
             <div style="font-size: 11px; color: var(--text-sec); font-weight: bold; text-align: center;">DYNAMIC DURATION PASSCODE</div>
-            <div id="passcode" class="passcode">584920</div>
-            <div id="timer" style="text-align: center; font-size: 12px; color: var(--danger); font-weight: bold;">PASSCODE SHIFTING IN: 10s</div>
+            <div id="passcode" class="passcode">------</div>
+            <div id="timer" style="text-align: center; font-size: 12px; color: var(--danger); font-weight: bold;">PASSCODE SHIFTING IN: --s</div>
           </div>
         </div>
 
@@ -780,53 +788,206 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
           <div>
             <h4 style="margin-bottom: 15px;">Live Classroom Presence</h4>
             <div class="stats-row">
-              <div class="stat-card"><div class="stat-val" style="color:#38bdf8">5</div><div style="font-size:10px; color:#94a3b8;">ENROLLED</div></div>
-              <div class="stat-card"><div id="val-present" class="stat-val" style="color:#4ade80">1</div><div style="font-size:10px; color:#94a3b8;">PRESENT</div></div>
-              <div class="stat-card"><div id="val-absent" class="stat-val" style="color:#f87171">4</div><div style="font-size:10px; color:#94a3b8;">ABSENT</div></div>
+              <div class="stat-card"><div id="val-enrolled" class="stat-val" style="color:#38bdf8">0</div><div style="font-size:10px; color:#94a3b8;">ENROLLED</div></div>
+              <div class="stat-card"><div id="val-present" class="stat-val" style="color:#4ade80">0</div><div style="font-size:10px; color:#94a3b8;">PRESENT</div></div>
+              <div class="stat-card"><div id="val-absent" class="stat-val" style="color:#f87171">0</div><div style="font-size:10px; color:#94a3b8;">ABSENT</div></div>
             </div>
           </div>
 
           <div style="margin-top: 20px;">
-            <button type="button" onclick="connectWebSerial()" style="background:#059669; margin-bottom: 10px;">🔌 WebSerial USB Hardware Direct Sync</button>
-            <button type="button" style="background:#ef4444;" onclick="alert('Absent Students: 20CSE11, 20CSE12, 20CSE13, 20CSE14')">👥 View Absentees List</button>
+            <button id="webserial-btn" type="button" onclick="connectWebSerial()" style="background:#059669; margin-bottom: 10px;">🔌 Pair ESP32 USB Port via Chrome</button>
+            <button type="button" style="background:#ef4444;" onclick="openAbsenteesModal()">👥 View Absentees List</button>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <script>
-    function handleAuth(e) {
-      e.preventDefault();
-      document.getElementById('auth-view').style.display = 'none';
-      document.getElementById('console-view').style.display = 'block';
-      startPasscodeTimer();
-    }
+  <!-- Absentees Modal -->
+  <div id="absentees-modal" class="modal">
+    <div class="modal-content">
+      <h3 style="margin-bottom: 12px;">Absent Students Roster</h3>
+      <div id="absentees-list" style="max-height: 250px; overflow-y: auto; font-size: 13px; margin-bottom: 18px; color: #f87171;">
+        No absent records.
+      </div>
+      <button type="button" onclick="closeAbsenteesModal()" style="background:#334155;">Close Roster</button>
+    </div>
+  </div>
 
-    function startPasscodeTimer() {
-      let countdown = 10;
-      setInterval(() => {
-        countdown--;
-        if (countdown <= 0) {
-          countdown = 10;
-          document.getElementById('passcode').innerText = Math.floor(100000 + Math.random() * 900000);
-        }
-        document.getElementById('timer').innerText = `PASSCODE SHIFTING IN: ${countdown}s`;
-      }, 1000);
+  <script>
+    let activeRoster = [];
+    let presentSet = new Set();
+    let serialPort = null;
+
+    window.addEventListener('DOMContentLoaded', autoConnectWebSerial);
+
+    async function autoConnectWebSerial() {
+      const badge = document.getElementById('hw-status');
+      if ('serial' in navigator) {
+        try {
+          const ports = await navigator.serial.getPorts();
+          if (ports.length > 0) {
+            serialPort = ports[0];
+            await serialPort.open({ baudRate: 115200 });
+            badge.innerText = '● Hardware Connected (COM Port Active)';
+            badge.className = 'status-badge';
+            readSerialLoop();
+            return;
+          }
+        } catch(e) {}
+      }
+      badge.innerText = '● Hardware Disconnected (USB Unplugged)';
+      badge.className = 'status-badge offline';
     }
 
     async function connectWebSerial() {
       if ('serial' in navigator) {
         try {
-          const port = await navigator.serial.requestPort();
-          await port.open({ baudRate: 115200 });
-          alert('✅ Connected directly to ESP32 Hardware via Chrome WebSerial!');
+          serialPort = await navigator.serial.requestPort();
+          await serialPort.open({ baudRate: 115200 });
+          document.getElementById('hw-status').innerText = '● Hardware Connected (COM Port Active)';
+          document.getElementById('hw-status').className = 'status-badge';
+          alert('✅ Successfully connected to ESP32 Hardware via WebSerial!');
+          readSerialLoop();
         } catch (err) {
           alert('WebSerial Note: ' + err.message);
         }
       } else {
         alert('WebSerial is active natively on Chrome & Edge!');
       }
+    }
+
+    async function readSerialLoop() {
+      if (!serialPort || !serialPort.readable) return;
+      const reader = serialPort.readable.getReader();
+      try {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          // Reading serial data from hardware
+        }
+      } catch (err) {
+      } finally {
+        reader.releaseLock();
+      }
+    }
+
+    async function handleAuth(e) {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('pass').value.trim();
+      const alertDiv = document.getElementById('login-alert');
+      const loginBtn = document.getElementById('login-btn');
+
+      alertDiv.style.display = 'none';
+      loginBtn.innerText = 'Authenticating...';
+      loginBtn.disabled = true;
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: email, password })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.detail || 'Authentication failed. Please check your credentials.');
+        }
+
+        if (data.role !== 'admin' && data.role !== 'teacher') {
+          throw new Error('Access denied. Instructor accounts only.');
+        }
+
+        document.getElementById('auth-view').style.display = 'none';
+        document.getElementById('console-view').style.display = 'block';
+
+        // Fetch live timetable schedule for teacher
+        await loadSchedule(data.teacher_id || data.sub);
+        startPasscodeTimer();
+
+      } catch (err) {
+        alertDiv.innerText = err.message;
+        alertDiv.style.display = 'block';
+      } finally {
+        loginBtn.innerText = 'Authenticate Instructor Console';
+        loginBtn.disabled = false;
+      }
+    }
+
+    async function loadSchedule(teacherId) {
+      try {
+        // Resolve active schedule for this teacher
+        const res = await fetch(`/api/schedule/resolve?uid=ESP32_DEV_ROOM-301&teacher_id=${teacherId}`);
+        if (res.ok) {
+          const sched = await res.json();
+          document.getElementById('subject-name').innerText = `${sched.subject_name} (${sched.course_code})`;
+          document.getElementById('room-name').innerText = `Classroom ${sched.room_number} | Section ${sched.section_name}`;
+
+          // Fetch section roster
+          const rosterRes = await fetch(`/api/schedule/${sched.schedule_id}/roster`);
+          if (rosterRes.ok) {
+            activeRoster = await rosterRes.json();
+            updateStatsUI();
+          }
+        } else {
+          document.getElementById('subject-name').innerText = 'No Active Lecture Schedule';
+          document.getElementById('room-name').innerText = 'Check your timetable configuration in Admin Portal.';
+        }
+      } catch (err) {
+        document.getElementById('subject-name').innerText = 'Schedule Offline';
+        document.getElementById('room-name').innerText = 'Could not load timetable schedule.';
+      }
+    }
+
+    function updateStatsUI() {
+      const total = activeRoster.length;
+      const present = presentSet.size;
+      const absent = Math.max(0, total - present);
+
+      document.getElementById('val-enrolled').innerText = total;
+      document.getElementById('val-present').innerText = present;
+      document.getElementById('val-absent').innerText = absent;
+    }
+
+    function startPasscodeTimer() {
+      generatePasscode();
+      let countdown = 10;
+      setInterval(() => {
+        countdown--;
+        if (countdown <= 0) {
+          countdown = 10;
+          generatePasscode();
+        }
+        document.getElementById('timer').innerText = `PASSCODE SHIFTING IN: ${countdown}s`;
+      }, 1000);
+    }
+
+    function generatePasscode() {
+      const code = String(Math.floor(100000 + Math.random() * 900000));
+      document.getElementById('passcode').innerText = code;
+      // Push passcode to hardware via Serial if connected
+      if (serialPort && serialPort.writable) {
+        const writer = serialPort.writable.getWriter();
+        writer.write(new TextEncoder().encode(`TOKEN:${code}\\n`));
+        writer.releaseLock();
+      }
+    }
+
+    function openAbsenteesModal() {
+      const listDiv = document.getElementById('absentees-list');
+      const absentees = activeRoster.filter(s => !presentSet.has(s.reg_number));
+      
+      if (absentees.length === 0) {
+        listDiv.innerHTML = '<div style="color:#4ade80; text-align:center; padding:15px;">🎉 All enrolled students present!</div>';
+      } else {
+        listDiv.innerHTML = absentees.map((s, i) => `<div style="padding:6px 0; border-bottom:1px solid #1e293b;">${i+1}. ${s.reg_number} - ${s.name || s.reg_number}</div>`).join('');
+      }
+      document.getElementById('absentees-modal').style.display = 'flex';
+    }
+
+    function closeAbsenteesModal() {
+      document.getElementById('absentees-modal').style.display = 'none';
     }
   </script>
 </body>
