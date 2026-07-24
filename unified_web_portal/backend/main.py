@@ -905,14 +905,28 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
     async function connectWebSerial() {
       if ('serial' in navigator) {
         try {
+          if (serialPort && serialPort.readable) {
+            document.getElementById('hw-status').innerText = '● Hardware Connected (COM Port Active)';
+            document.getElementById('hw-status').className = 'status-badge';
+            alert('✅ ESP32 Hardware is ALREADY connected and active!');
+            return;
+          }
           serialPort = await navigator.serial.requestPort();
-          await serialPort.open({ baudRate: 115200 });
+          if (!serialPort.readable) {
+            await serialPort.open({ baudRate: 115200 });
+          }
           document.getElementById('hw-status').innerText = '● Hardware Connected (COM Port Active)';
           document.getElementById('hw-status').className = 'status-badge';
           alert('✅ Successfully connected to ESP32 Hardware via WebSerial!');
           readSerialLoop();
         } catch (err) {
-          alert('WebSerial Note: ' + err.message);
+          if (err.message && err.message.includes('already open')) {
+            document.getElementById('hw-status').innerText = '● Hardware Connected (COM Port Active)';
+            document.getElementById('hw-status').className = 'status-badge';
+            alert('✅ ESP32 Hardware is ALREADY connected and active!');
+          } else if (err.name !== 'NotFoundError') {
+            alert('WebSerial Note: ' + err.message);
+          }
         }
       } else {
         alert('WebSerial is active natively on Chrome & Edge!');
