@@ -933,6 +933,9 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
       }
     }
 
+    let serialBuffer = '';
+    const serialDecoder = new TextDecoder();
+
     async function readSerialLoop() {
       if (!serialPort || !serialPort.readable) return;
       const reader = serialPort.readable.getReader();
@@ -940,7 +943,29 @@ INSTRUCTOR_WEB_HTML = """<!DOCTYPE html>
         while (true) {
           const { value, done } = await reader.read();
           if (done) break;
-          // Reading serial data from hardware
+          if (value) {
+            serialBuffer += serialDecoder.decode(value, { stream: true });
+            let lines = serialBuffer.split('\n');
+            serialBuffer = lines.pop();
+
+            for (let line of lines) {
+              line = line.trim();
+              if (line.includes('REG_NUM:') && line.includes('STATUS:VALID')) {
+                const match = line.match(/REG_NUM:\s*([^,\s]+)/);
+                if (match && match[1]) {
+                  const regNum = match[1].trim();
+                  presentSet.add(regNum);
+                  updateStatsUI();
+
+                  fetch('/api/attendance/bulk-upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items: [{ students: [regNum] }] })
+                  }).catch(e => {});
+                }
+              }
+            }
+          }
         }
       } catch (err) {
       } finally {
